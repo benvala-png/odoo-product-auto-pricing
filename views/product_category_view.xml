@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_product_category_form_auto_pricing" model="ir.ui.view">
+        <field name="name">product.category.form.auto.pricing</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group" position="inside">
+                <group string="Auto-pricing">
+                    <field name="x_margin_percent"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
