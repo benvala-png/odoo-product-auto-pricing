@@ -45,6 +45,9 @@ class ProductTemplate(models.Model):
     x_last_auto_supplier_id = fields.Many2one(
         "res.partner", string="Dernier fournisseur choisi", readonly=True
     )
+    x_last_auto_date = fields.Datetime(
+        string="Date du dernier calcul auto", readonly=True
+    )
 
     # ------------------------------------------------------------
     # CALCUL PRINCIPAL DU PRIX AUTO
@@ -85,6 +88,7 @@ class ProductTemplate(models.Model):
                 template.x_last_auto_cost = cost
                 template.x_last_auto_price = new_price
                 template.x_last_auto_supplier_id = cheapest.partner_id
+                template.x_last_auto_date = fields.Datetime.now()
 
     # ------------------------------------------------------------
     # Bouton manuel
