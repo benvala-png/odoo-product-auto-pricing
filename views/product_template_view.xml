@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
+    <!-- Add "Prix promo" column to the supplier pricelist on the product template form -->
+    <record id="view_supplierinfo_form_auto_pricing" model="ir.ui.view">
+        <field name="name">product.supplierinfo.form.auto.pricing</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="after">
+                <field name="is_promo_price"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_product_template_form_auto_pricing" model="ir.ui.view">
         <field name="name">product.template.form.auto.pricing</field>
         <field name="model">product.template</field>
@@ -12,6 +24,7 @@
                     <field name="x_last_auto_supplier_id" readonly="1"/>
                     <field name="x_last_auto_cost" readonly="1"/>
                     <field name="x_last_auto_price" readonly="1"/>
+                    <field name="x_last_auto_date" readonly="1"/>
                     <button name="action_recompute_auto_price"
                             string="Recalculer le prix (auto)"
                             type="object"
