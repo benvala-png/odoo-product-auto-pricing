@@ -34,4 +34,15 @@
         </field>
     </record>
 
+    <record id="view_supplierinfo_tree_auto_pricing" model="ir.ui.view">
+        <field name="name">product.supplierinfo.tree.auto.pricing</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price']" position="after">
+                <field name="is_promo_price" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
