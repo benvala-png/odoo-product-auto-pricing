@@ -1,0 +1,5 @@
+.env
+tools/.biofresh_session.json
+tools/__pycache__/
+__pycache__/
+*.pyc
