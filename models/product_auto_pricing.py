@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
 
+DEFAULT_MARGIN_PERCENT = 30.0  # marge appliquée si la catégorie n'en définit pas
+
 
 # ------------------------------------------------------------
 # Extension de product.supplierinfo : ajout d'un flag "promo"
@@ -69,7 +71,7 @@ class ProductTemplate(models.Model):
             cheapest = min(sellerinfos, key=lambda s: s.price)
             cost = cheapest.price
 
-            margin = template.categ_id.x_margin_percent or 0.0
+            margin = template.categ_id.x_margin_percent or DEFAULT_MARGIN_PERCENT
             new_price = round(cost * (1 + margin / 100.0), 2)
 
             changed = False
