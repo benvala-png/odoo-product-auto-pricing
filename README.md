@@ -12,7 +12,7 @@ Addon Odoo 16 qui calcule automatiquement le prix de vente d'un produit à parti
 | Prix promo fournisseur | Un prix fournisseur peut être marqué "promo" pour être ignoré dans le calcul |
 | Auto-pricing par produit | L'auto-pricing peut être activé/désactivé produit par produit |
 | Bouton manuel | Recalcul immédiat depuis la fiche produit |
-| Cron automatique | Recalcul planifiable quotidiennement (désactivé par défaut) |
+| Cron automatique | Recalcul quotidien (**actif depuis le 2026-07-07** sur IPELLE) |
 | Audit | Dernier coût, prix, fournisseur choisi et date du calcul sont enregistrés |
 
 ---
@@ -51,11 +51,14 @@ Sur la fiche produit, groupe **Auto-pricing** :
 - Cocher **Auto-pricing activé**
 - Cliquer sur **Recalculer le prix (auto)** pour un calcul immédiat
 
-### 4. Activer le cron
+### 4. Le cron
 
 `Paramètres > Technique > Actions planifiées > Auto-pricing (cheapest supplier + margin)`
 
-- Activer l'action et ajuster la fréquence si besoin (défaut : 1 jour)
+- **Actif depuis le 2026-07-07** (fréquence : 1 jour). ⚠️ Il écrase
+  silencieusement tout prix corrigé manuellement sur un produit
+  `x_auto_pricing_enabled=True` — désactiver ce flag sur un produit si son
+  prix doit rester fixé à la main. Détail : voir `DOCS.md`.
 
 ---
 
@@ -82,6 +85,7 @@ prix_vente = coût_fournisseur_min × (1 + marge_catégorie / 100)
 | Champ | Type | Description |
 |---|---|---|
 | `x_margin_percent` | Float | Marge automatique (%) appliquée au coût fournisseur |
+| `x_margin_zero_confirmed` | Boolean | À cocher si une marge à 0% est volontaire (sinon 0% est traité comme "non configuré" et remplacé par 30%) — voir `DOCS.md` |
 
 ### `product.template`
 
