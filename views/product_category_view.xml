@@ -9,6 +9,8 @@
             <xpath expr="//group" position="inside">
                 <group string="Auto-pricing">
                     <field name="x_margin_percent"/>
+                    <field name="x_margin_zero_confirmed"
+                           attrs="{'invisible': [('x_margin_percent', '!=', 0)]}"/>
                 </group>
             </xpath>
         </field>
