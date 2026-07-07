@@ -29,6 +29,14 @@ class ProductCategory(models.Model):
         help="Marge appliquée automatiquement sur le fournisseur le moins cher.",
         default=30.0,
     )
+    x_margin_zero_confirmed = fields.Boolean(
+        string="Marge à 0% volontaire",
+        help="À cocher si cette catégorie doit vraiment être vendue sans marge "
+             "(ex. consignes). Sans cette case, une marge à 0% est traitée comme "
+             "'non configurée' et remplacée par la marge par défaut "
+             f"({DEFAULT_MARGIN_PERCENT:g}%) lors du calcul auto.",
+        default=False,
+    )
 
 
 # ------------------------------------------------------------
@@ -71,7 +79,11 @@ class ProductTemplate(models.Model):
             cheapest = min(sellerinfos, key=lambda s: s.price)
             cost = cheapest.price
 
-            margin = template.categ_id.x_margin_percent or DEFAULT_MARGIN_PERCENT
+            categ = template.categ_id
+            if categ.x_margin_percent or categ.x_margin_zero_confirmed:
+                margin = categ.x_margin_percent
+            else:
+                margin = DEFAULT_MARGIN_PERCENT
             new_price = round(cost * (1 + margin / 100.0), 2)
 
             changed = False
