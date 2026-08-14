@@ -98,7 +98,22 @@ class ProductTemplate(models.Model):
                 template.list_price = new_price
                 changed = True
 
-            if changed:
+            # Le suivi doit refléter le dernier calcul RÉUSSI, pas seulement
+            # ceux qui ont modifié un prix. Un produit déjà au bon prix restait
+            # sans fournisseur ni date : impossible de distinguer « calculé,
+            # déjà correct » de « jamais traité », y compris sur l'étiquette 3x7
+            # qui imprime « Fourn: » et « MAJ: ».
+            #
+            # On compare le suivi aux valeurs calculées plutôt que d'estampiller
+            # systématiquement : sans ça, le cron quotidien réécrirait chaque
+            # jour tous les produits en auto-pricing, pour rien.
+            suivi_obsolete = (
+                abs((template.x_last_auto_cost or 0.0) - cost) > 0.0001
+                or abs((template.x_last_auto_price or 0.0) - new_price) > 0.0001
+                or template.x_last_auto_supplier_id != cheapest.partner_id
+            )
+
+            if changed or suivi_obsolete:
                 template.x_last_auto_cost = cost
                 template.x_last_auto_price = new_price
                 template.x_last_auto_supplier_id = cheapest.partner_id
