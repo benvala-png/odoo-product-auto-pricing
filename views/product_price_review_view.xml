@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_product_template_price_review_tree" model="ir.ui.view">
+        <field name="name">product.template.tree.price.review</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <tree string="Prix de vente à revoir" create="false" delete="false"
+                  editable="bottom" decoration-danger="x_auto_price_gap &lt; 0"
+                  decoration-success="x_auto_price_gap &gt; 0">
+                <header>
+                    <!-- Odoo 16 : un bouton de header en vue liste n'apparaît
+                         qu'une fois des lignes cochées. C'est voulu ici — on ne
+                         reprice jamais « tout », on reprice ce qu'on s'apprête
+                         à réimprimer. -->
+                    <button name="action_recompute_auto_price_selection"
+                            type="object" class="btn-primary"
+                            string="Recalculer le prix de vente"
+                            confirm="Recalculer le prix de vente des lignes sélectionnées ? Pense à réimprimer les étiquettes de cette même sélection juste après."/>
+                </header>
+                <field name="default_code" string="Réf." optional="show"/>
+                <field name="barcode" optional="hide"/>
+                <field name="name" string="Article"/>
+                <field name="categ_id" string="Catégorie" optional="show"/>
+                <field name="x_last_auto_supplier_id" string="Fournisseur" optional="show"/>
+                <field name="standard_price" string="Coût"/>
+                <field name="list_price" string="Prix affiché"/>
+                <field name="x_auto_price_target" string="Prix cible"/>
+                <field name="x_auto_price_gap" string="Écart"/>
+                <field name="x_last_auto_date" string="Dernier calcul" optional="show"/>
+                <field name="x_auto_price_stale" invisible="1"/>
+                <field name="x_auto_pricing_enabled" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_product_price_review" model="ir.actions.act_window">
+        <field name="name">Prix de vente à revoir</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_product_template_price_review_tree"/>
+        <field name="domain">[('x_auto_price_stale', '=', True)]</field>
+        <field name="context">{'create': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiley_face">Aucun prix de vente à revoir.</p>
+            <p>
+                Un article apparaît ici quand son prix de vente affiché ne
+                correspond plus à la règle d'auto-pricing (fournisseur non-promo
+                le moins cher × marge de la catégorie) — typiquement après la
+                validation d'un prix d'achat, qui ne touche plus au prix de
+                vente depuis le 2026-08-24.
+            </p>
+            <p>
+                Le geste : cocher les lignes, <b>Recalculer le prix de vente</b>,
+                puis <b>Action ▸ Imprimer les étiquettes</b> sur la même
+                sélection. Le rayon et la caisse restent d'accord.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_product_price_review"
+              name="Prix de vente à revoir"
+              parent="purchase.menu_procurement_management"
+              action="action_product_price_review"
+              sequence="26"/>
+
+</odoo>
