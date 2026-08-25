@@ -111,28 +111,60 @@ class ProductTemplate(models.Model):
         positif = (operator == "=") == value
         return [("id", "in" if positif else "not in", ids)]
 
-    def action_recompute_auto_price_selection(self):
-        """Recalcul en masse depuis l'écran « Prix de vente à revoir ».
+    def _action_print_labels(self):
+        """Assistant d'impression d'étiquettes, pré-rempli sur `self`.
 
-        C'est le geste délibéré : on choisit les lignes, on recalcule, puis on
-        imprime les étiquettes sur la MÊME sélection (Action ▸ Imprimer les
-        étiquettes). C'est tout l'intérêt de passer par une liste plutôt que
-        produit par produit.
+        Le format « 3x7xprice » (étiquette de rayon : nom, code-barres, prix)
+        vient de `product_label_extra_format`, qui dépend de CE module — donc
+        jamais l'inverse. On ne le présélectionne que s'il est réellement
+        installé, sinon le défaut du core s'applique.
+        """
+        action = self.env["ir.actions.act_window"]._for_xml_id(
+            "product.action_open_label_layout")
+        contexte = {"default_product_tmpl_ids": self.ids}
+        formats = self.env["product.label.layout"]._fields["print_format"].get_values(self.env)
+        if "3x7xprice" in formats:
+            contexte["default_print_format"] = "3x7xprice"
+        action["context"] = contexte
+        action["name"] = _("Imprimer les étiquettes (%s article(s))") % len(self)
+        return action
+
+    def action_print_labels_selection(self):
+        """Bouton « Imprimer les étiquettes » de l'écran « Prix de vente à
+        revoir » — pour réimprimer sans repasser par le recalcul (étiquette
+        abîmée, prix corrigé à la main)."""
+        if not self:
+            raise UserError(_("Sélectionne d'abord les articles à étiqueter."))
+        return self._action_print_labels()
+
+    def action_recompute_auto_price_selection(self):
+        """Recalcul en masse depuis l'écran « Prix de vente à revoir », suivi
+        de l'impression des étiquettes des articles dont le prix a bougé.
+
+        Le recalcul les fait sortir du filtre de l'écran : sans enchaînement
+        automatique, la sélection est perdue au rechargement et l'étiquette
+        périmée reste en rayon — c'est le prix affiché qui ment, pas la caisse.
+        On n'imprime QUE les articles dont le prix a réellement changé : les
+        autres ont déjà la bonne étiquette, les réimprimer serait du papier
+        perdu et un doute sur ce qui est à recoller.
         """
         avant = {t.id: t.list_price for t in self}
         self._compute_auto_price_for_templates()
-        bouges = [f"{t.name} : {avant[t.id]:.2f} → {t.list_price:.2f}"
-                  for t in self if abs(t.list_price - avant[t.id]) > self._AUTO_PRICE_TOL]
+        bouges = self.filtered(
+            lambda t: abs(t.list_price - avant[t.id]) > self._AUTO_PRICE_TOL)
         message = _("%s prix de vente recalculé(s).") % len(bouges)
+        suivant = {"type": "ir.actions.act_window_close"}
         if bouges:
-            message += "\n- " + "\n- ".join(bouges)
-            message += _("\n\nPense aux étiquettes : garde cette sélection et "
-                         "fais Action ▸ Imprimer les étiquettes.")
+            message += "\n- " + "\n- ".join(
+                f"{t.name} : {avant[t.id]:.2f} → {t.list_price:.2f}" for t in bouges)
+            message += _("\n\nL'impression des étiquettes s'ouvre sur ces "
+                         "%s article(s).") % len(bouges)
+            suivant = bouges._action_print_labels()
         return {
             "type": "ir.actions.client", "tag": "display_notification",
             "params": {"title": _("Prix de vente recalculés"), "message": message,
                        "type": "success", "sticky": True,
-                       "next": {"type": "ir.actions.act_window_close"}},
+                       "next": suivant},
         }
 
     # ------------------------------------------------------------
