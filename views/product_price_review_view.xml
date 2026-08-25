@@ -16,7 +16,12 @@
                     <button name="action_recompute_auto_price_selection"
                             type="object" class="btn-primary"
                             string="Recalculer le prix de vente"
-                            confirm="Recalculer le prix de vente des lignes sélectionnées ? Pense à réimprimer les étiquettes de cette même sélection juste après."/>
+                            confirm="Recalculer le prix de vente des lignes sélectionnées ? L'impression des étiquettes s'ouvrira ensuite sur les articles dont le prix a bougé."/>
+                    <!-- Réimpression seule : étiquette abîmée, prix corrigé à la
+                         main, ou tirage refait après un bourrage papier. -->
+                    <button name="action_print_labels_selection"
+                            type="object" class="btn-secondary"
+                            string="Imprimer les étiquettes"/>
                 </header>
                 <field name="default_code" string="Réf." optional="show"/>
                 <field name="barcode" optional="hide"/>
@@ -51,9 +56,11 @@
                 vente depuis le 2026-08-24.
             </p>
             <p>
-                Le geste : cocher les lignes, <b>Recalculer le prix de vente</b>,
-                puis <b>Action ▸ Imprimer les étiquettes</b> sur la même
-                sélection. Le rayon et la caisse restent d'accord.
+                Le geste : cocher les lignes, puis <b>Recalculer le prix de
+                vente</b> — l'impression des étiquettes s'ouvre dans la foulée
+                sur les articles dont le prix a bougé. Le rayon et la caisse
+                restent d'accord. Le bouton <b>Imprimer les étiquettes</b> sert
+                à réimprimer seul, sans rien recalculer.
             </p>
         </field>
     </record>
