@@ -6,8 +6,11 @@
         <field name="model">product.template</field>
         <field name="arch" type="xml">
             <tree string="Prix de vente à revoir" create="false" delete="false"
-                  editable="bottom" decoration-danger="x_auto_price_gap &lt; 0"
-                  decoration-success="x_auto_price_gap &gt; 0">
+                  editable="bottom"
+                  default_order="x_achat_variation desc, x_achat_change_le desc"
+                  decoration-danger="x_achat_variation &gt;= 10"
+                  decoration-warning="x_achat_variation &gt;= 5 and x_achat_variation &lt; 10"
+                  decoration-muted="x_pv_regle_fiable == False">
                 <header>
                     <!-- Odoo 16 : un bouton de header en vue liste n'apparaît
                          qu'une fois des lignes cochées. C'est voulu ici — on ne
@@ -22,16 +25,37 @@
                     <button name="action_print_labels_selection"
                             type="object" class="btn-secondary"
                             string="Imprimer les étiquettes"/>
+                    <!-- Indispensable depuis la fusion : une baisse de prix
+                         d'achat met l'article dans la liste sans qu'on veuille
+                         forcément toucher au prix de vente. Sans ce bouton, la
+                         seule sortie serait de repricer. -->
+                    <button name="action_achat_vu" type="object"
+                            class="btn-secondary"
+                            string="Vu, je garde mon prix"/>
                 </header>
-                <field name="default_code" string="Réf." optional="show"/>
+                <field name="x_pv_motif" string="Motif"/>
+                <field name="default_code" string="Réf." optional="hide"/>
                 <field name="barcode" optional="hide"/>
                 <field name="name" string="Article"/>
                 <field name="categ_id" string="Catégorie" optional="show"/>
                 <field name="x_last_auto_supplier_id" string="Fournisseur" optional="show"/>
-                <field name="standard_price" string="Coût"/>
+                <field name="x_achat_precedent" string="Achat avant" optional="show"/>
+                <field name="x_achat_nouveau" string="Achat après" optional="show"/>
+                <field name="standard_price" string="Coût" optional="hide"/>
                 <field name="list_price" string="Prix affiché"/>
-                <field name="x_auto_price_target" string="Prix cible"/>
-                <field name="x_auto_price_gap" string="Écart"/>
+                <!-- `x_pv_regle` et non `x_auto_price_target` : la cible doit
+                     s'afficher pour TOUT article, inscrit ou non en
+                     auto-pricing, et rester vide quand les unités d'achat et
+                     de vente ne concordent pas. -->
+                <field name="x_pv_regle" string="Prix selon la règle"/>
+                <field name="x_pv_regle_ecart" string="Écart"/>
+                <field name="x_pv_regle_fiable" string="Unités OK" optional="show"/>
+                <field name="x_auto_price_target" string="Cible auto-pricing" optional="hide"/>
+                <field name="x_auto_price_gap" string="Écart auto-pricing" optional="hide"/>
+                <field name="x_achat_nature" string="Nature" optional="hide"/>
+                <field name="x_achat_variation" string="Variation %" optional="hide"/>
+                <field name="x_achat_change_le" string="Achat modifié le" optional="hide"/>
+                <field name="x_achat_a_revoir" invisible="1"/>
                 <field name="x_last_auto_date" string="Dernier calcul" optional="show"/>
                 <field name="x_auto_price_stale" invisible="1"/>
                 <field name="x_auto_pricing_enabled" invisible="1"/>
@@ -44,31 +68,55 @@
         <field name="res_model">product.template</field>
         <field name="view_mode">tree,form</field>
         <field name="view_id" ref="view_product_template_price_review_tree"/>
-        <field name="domain">[('x_auto_price_stale', '=', True)]</field>
+        <!-- Deux déclencheurs, un seul écran : un prix d'achat qui a bougé,
+             ou un prix de vente qui ne suit plus la règle. Ils se recoupent
+             (6 articles sur 119 au 2026-08-28) — deux listes auraient fait
+             compter deux fois et hésiter à chaque fois. -->
+        <field name="domain">['|', ('x_achat_a_revoir', '=', True),
+                                   ('x_auto_price_stale', '=', True)]</field>
         <field name="context">{'create': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiley_face">Aucun prix de vente à revoir.</p>
             <p>
-                Un article apparaît ici quand son prix de vente affiché ne
-                correspond plus à la règle d'auto-pricing (fournisseur non-promo
-                le moins cher × marge de la catégorie) — typiquement après la
-                validation d'un prix d'achat, qui ne touche plus au prix de
-                vente depuis le 2026-08-24.
+                Un article apparaît ici pour l'une de deux raisons, lisibles
+                dans la colonne <b>Motif</b> : son <b>prix d'achat a changé</b>
+                (hausse, baisse, ou prix qui n'existait pas), ou son
+                <b>prix de vente ne suit plus la règle</b> — fournisseur
+                non-promo le moins cher × marge de la catégorie. Appliquer un
+                prix d'achat ne touche jamais au prix de vente : c'est ici que
+                la décision se prend.
             </p>
             <p>
                 Le geste : cocher les lignes, puis <b>Recalculer le prix de
                 vente</b> — l'impression des étiquettes s'ouvre dans la foulée
                 sur les articles dont le prix a bougé. Le rayon et la caisse
                 restent d'accord. Le bouton <b>Imprimer les étiquettes</b> sert
-                à réimprimer seul, sans rien recalculer.
+                à réimprimer seul, sans rien recalculer. <b>Vu, je garde mon
+                prix</b> sort la ligne de la liste sans modifier quoi que ce
+                soit — la bonne réponse pour une baisse de prix d'achat qu'on
+                ne veut pas répercuter.
             </p>
         </field>
     </record>
 
+    <!-- Le menu qui rassemble tout ce qui touche aux prix. Il est défini ICI
+         et non dans supplier_enrichment, qui y range pourtant trois écrans :
+         c'est supplier_enrichment qui dépend de ce module, donc lui seul peut
+         référencer un parent d'ici. L'inverse échouerait au chargement.
+
+         L'ordre des enfants suit le parcours réel : le prix d'achat relevé sur
+         une facture (10 à 30) rend le prix de vente périmé (40), qui se
+         recalcule puis se réimprime. -->
+    <menuitem id="menu_prix"
+              name="Prix"
+              parent="purchase.menu_purchase_root"
+              groups="purchase.group_purchase_user"
+              sequence="90"/>
+
     <menuitem id="menu_product_price_review"
               name="Prix de vente à revoir"
-              parent="purchase.menu_procurement_management"
+              parent="menu_prix"
               action="action_product_price_review"
-              sequence="26"/>
+              sequence="40"/>
 
 </odoo>
