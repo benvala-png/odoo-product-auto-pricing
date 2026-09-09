@@ -457,6 +457,17 @@ class ProductTemplate(models.Model):
         products._compute_auto_price_for_templates()
 
 
+class ProductProduct(models.Model):
+    """`_inherits` délègue les champs de product.template, pas les méthodes :
+    un appel à action_recompute_auto_price() sur une fiche variante levait
+    une AttributeError. Simple relais vers la fiche modèle.
+    """
+    _inherit = "product.product"
+
+    def action_recompute_auto_price(self):
+        return self.mapped("product_tmpl_id").action_recompute_auto_price()
+
+
 class ProductSupplierinfo(models.Model):
     """C'est ici qu'on sait qu'un prix d'achat a bougé — nulle part ailleurs.
 
