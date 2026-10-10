@@ -1,5 +1,9 @@
 # product_auto_pricing (Odoo 16)
 
+> **In English —** Small shops change supplier prices all the time, and sale prices drift out of line. This module computes each product's sale price from its cheapest non-promo supplier plus a per-category margin, flags every product whose price no longer matches the rule, and lets staff recompute and reprint shelf labels in one step. It never silently overwrites a price.
+
+*Documentation below is in French.*
+
 Addon Odoo 16 qui calcule le prix de vente d'un produit à partir du
 **fournisseur le moins cher** (hors promo) et de la **marge définie par
 catégorie**, et signale quand un prix affiché ne correspond plus à cette
@@ -203,12 +207,9 @@ product_auto_pricing/
 │   └── product_price_review_view.xml   # Écran "Prix de vente à revoir" + menu Prix
 ├── tools/                           # Scripts autonomes, hors chargement Odoo :
 │   ├── importers.py                 #   import de tarifs fournisseurs xlsx
-│   ├── scraper_biofresh.py          #   scraping Biofresh par Playwright — voir
-│   │                                #   mémoire biofresh_shop_scraping, un scraper
-│   │                                #   plus récent existe côté supplier_enrichment
 │   └── sample_data/                 #   fichiers xlsx d'exemple pour les tests
 ├── simulate.py                      # Rejoue la logique de calcul hors Odoo (mock)
-└── .env.example                     # Identifiants du scraper, à copier en .env
+└── .env.example                     # Modèle de .env pour des outils externes
 ```
 
 ---

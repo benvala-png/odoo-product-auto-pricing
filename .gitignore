@@ -1,5 +1,19 @@
-.env
-tools/.biofresh_session.json
-tools/__pycache__/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+
+# Editors / OS
+*.swp
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backups / logs
+*.bak
+*.orig
+*.log
