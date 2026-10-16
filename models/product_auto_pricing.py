@@ -255,6 +255,27 @@ class ProductTemplate(models.Model):
                          prix, fiche.partner_id.display_name)
             template.standard_price = prix
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Rattrape le coût d'une fiche créée AVEC son prix d'achat.
+
+        Les fiches fournisseur passées dans `seller_ids` sont créées pendant
+        `super().create()`, AVANT les variantes : `_suivre_cout_achat` écrit
+        alors `standard_price` sur un modèle sans variante, et l'écriture se
+        perd. 9 fiches créées depuis le 29/08 avaient ainsi un prix d'achat et
+        un coût nul (pâtes Bionaturels du 15/10 vendues sans coût le 16/10).
+        Ici, les variantes existent.
+        """
+        templates = super().create(vals_list)
+        for template in templates:
+            if template.standard_price:
+                continue
+            fiche = template.seller_ids.filtered(
+                lambda s: s.price > 0 and not s.is_promo_price)[:1]
+            if fiche:
+                template._suivre_cout_achat(fiche.price, fiche)
+        return templates
+
     def action_achat_vu(self):
         """« J'ai regardé, je garde mon prix. » Ne touche à aucun prix."""
         self.write({"x_achat_a_revoir": False})

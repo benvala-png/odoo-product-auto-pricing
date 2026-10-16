@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Product Auto Pricing (Cheapest Supplier + Margin)",
-    "version": "16.0.1.6.1",
+    "version": "16.0.1.6.2",
     "summary": "Calcule automatiquement le prix de vente à partir du fournisseur le moins cher et de la marge par catégorie.",
     "author": "Benjamin Van Laethem",
     "license": "LGPL-3",
