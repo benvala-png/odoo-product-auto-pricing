@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from odoo import _, api, fields, models
@@ -199,6 +200,38 @@ class ProductTemplate(models.Model):
                 valeurs["x_achat_precedent"] = avant
             template.write(valeurs)
 
+    @api.model
+    def _prix_net_achat(self, prix, fiche):
+        """Prix d'achat brut de la fiche → ce qu'on paie réellement.
+
+        ECODIS imprime le brut et la remise à part ; le taux dépend de la
+        quantité, il ne peut donc pas être figé dans la fiche (décision du
+        11/09 : la fiche reste au brut). Le taux « normal » de chaque article
+        est relevé sur les factures par `ecodis_remise_normale.py --odoo` et
+        rangé dans le paramètre `product_auto_pricing.remises_achat` :
+        {"<partner_id>": {"escompte": 1.0, "refs": {"3102": 10.0, ...}}}.
+        Réf. inconnue : pas de remise (on préfère un coût prudent), seulement
+        l'escompte. Mesuré le 24/10/2026 : brut surestimé de ~7 % (~400 €/mois).
+        """
+        if not prix or not fiche or not fiche.partner_id:
+            return prix
+        brut = self.env["ir.config_parameter"].sudo().get_param(
+            "product_auto_pricing.remises_achat")
+        if not brut:
+            return prix
+        try:
+            regle = json.loads(brut).get(str(fiche.partner_id.commercial_partner_id.id))
+        except ValueError:
+            _logger.warning("product_auto_pricing.remises_achat illisible : prix brut gardé")
+            return prix
+        if not regle:
+            return prix
+        ref = (fiche.product_code or "").strip()
+        refs = regle.get("refs") or {}
+        taux = refs.get(ref, refs.get(ref.zfill(4), 0.0)) or 0.0
+        escompte = regle.get("escompte") or 0.0
+        return round(prix * (1 - taux / 100.0) * (1 - escompte / 100.0), 4)
+
     def _suivre_cout_achat(self, prix, fiche):
         """Le coût du produit suit le prix d'achat qu'on vient d'enregistrer.
 
@@ -232,7 +265,12 @@ class ProductTemplate(models.Model):
             l'unité pour un article vendu 7,95 € ; Cerneaux de noix à 77,78 €/kg
             vendus 15,07 €). Une de ces fiches a déjà contaminé un coût — le
             Ka'ré porte 89,38 € de coût pour une vente à 9,25 €.
+
+        Le coût est le prix NET quand le fournisseur accorde une remise que la
+        fiche d'achat ne porte pas (ECODIS : fiche au brut, remise de 4 à 15 %
+        sur la facture, plus 1 % d'escompte) — voir `_prix_net_achat`.
         """
+        prix = self._prix_net_achat(prix, fiche)
         for template in self:
             if not prix or prix <= 0:
                 continue
@@ -529,3 +567,23 @@ class ProductSupplierinfo(models.Model):
         resultat = super().write(vals)
         self._signaler(avant)
         return resultat
+
+    def action_recalculer_cout_net(self):
+        """Rattrapage : repasse au net les coûts qui suivent encore une fiche brute.
+
+        Seulement là où le coût actuel EST le prix de cette fiche (à 1 cent
+        près) : un coût venu d'un autre fournisseur n'est pas touché. Ne modifie
+        ni la fiche d'achat ni le prix de vente. Renvoie le nombre de coûts
+        modifiés.
+        """
+        n = 0
+        for fiche in self:
+            template = fiche.product_tmpl_id
+            if fiche.is_promo_price or not template or not fiche.price:
+                continue
+            if abs((template.standard_price or 0.0) - fiche.price) > 0.01:
+                continue
+            avant = template.standard_price
+            template._suivre_cout_achat(fiche.price, fiche)
+            n += abs(template.standard_price - avant) > 0.0001
+        return n
