@@ -63,6 +63,24 @@
         </field>
     </record>
 
+    <!-- Les fruits et légumes ont leur propre circuit : leurs prix sont
+         posés chaque matin depuis le bon de commande Biofresh
+         (biofresh_order_import). Ils sont donc masqués par défaut ici ;
+         retirer le filtre les fait réapparaître. -->
+    <record id="view_product_template_price_review_search" model="ir.ui.view">
+        <field name="name">product.template.price.review.search</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter name="hors_fl" string="Hors fruits &amp; légumes"
+                        domain="[('categ_id.name', '!=', 'Fruits et Légumes')]"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="action_product_price_review" model="ir.actions.act_window">
         <field name="name">Prix de vente à revoir</field>
         <field name="res_model">product.template</field>
@@ -74,7 +92,8 @@
              compter deux fois et hésiter à chaque fois. -->
         <field name="domain">['|', ('x_achat_a_revoir', '=', True),
                                    ('x_auto_price_stale', '=', True)]</field>
-        <field name="context">{'create': False}</field>
+        <field name="search_view_id" ref="view_product_template_price_review_search"/>
+        <field name="context">{'create': False, 'search_default_hors_fl': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiley_face">Aucun prix de vente à revoir.</p>
             <p>
