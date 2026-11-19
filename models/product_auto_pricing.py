@@ -127,8 +127,15 @@ class ProductTemplate(models.Model):
     x_auto_price_stale = fields.Boolean(
         string="Prix de vente à revoir", compute="_compute_auto_price_gap",
         search="_search_auto_price_stale",
-        help="Le prix de vente affiché ne correspond plus à la règle "
-             "auto-pricing. À recalculer, puis à réimprimer.")
+        help="Le prix de vente affiché est SOUS la règle auto-pricing. À "
+             "recalculer, puis à réimprimer — ou « Vu, je garde mon prix ».")
+    # « Vu, je garde mon prix » sur une ligne « ne suit plus la règle » : la
+    # règle est recalculée à chaque affichage, il n'y a pas de coche à lever.
+    # On retient donc la cible qu'on a vue et refusée ; la ligne ne revient
+    # que si un prix d'achat la fait bouger (22 lignes bloquées le 2026-11-19).
+    x_pv_vu_cible = fields.Float(
+        string="Cible vue et gardée", digits="Product Price", copy=False,
+        readonly=True)
 
     # La règle arrondit au cent : comparer plus fin ne ferait que signaler du
     # bruit de virgule flottante.
@@ -315,12 +322,18 @@ class ProductTemplate(models.Model):
         return templates
 
     def action_achat_vu(self):
-        """« J'ai regardé, je garde mon prix. » Ne touche à aucun prix."""
-        self.write({"x_achat_a_revoir": False})
+        """« J'ai regardé, je garde mon prix. » Ne touche à aucun prix.
+
+        Lève le motif « prix d'achat » ET le motif « ne suit plus la règle »,
+        en retenant la cible du moment : la ligne revient si elle change."""
+        for template in self:
+            template.write({"x_achat_a_revoir": False,
+                            "x_pv_vu_cible": template.x_auto_price_target or 0.0})
         return True
 
     @api.depends("x_auto_pricing_enabled", "list_price", "categ_id",
-                 "seller_ids.price", "seller_ids.is_promo_price")
+                 "seller_ids.price", "seller_ids.is_promo_price",
+                 "x_pv_vu_cible")
     def _compute_auto_price_gap(self):
         for template in self:
             cible = template._auto_price_target()
@@ -332,8 +345,13 @@ class ProductTemplate(models.Model):
             _cost, prix, _fournisseur = cible
             template.x_auto_price_target = prix
             template.x_auto_price_gap = prix - (template.list_price or 0.0)
+            # Hausses seulement (règle ×1,57 de Benjamin) : un prix de vente
+            # AU-DESSUS de la règle est voulu, on ne le signale pas. Une baisse
+            # du prix d'achat reste visible par l'autre motif (x_achat_a_revoir).
+            vu = (template.x_pv_vu_cible
+                  and abs(prix - template.x_pv_vu_cible) <= template._AUTO_PRICE_TOL)
             template.x_auto_price_stale = (
-                abs(template.x_auto_price_gap) > template._AUTO_PRICE_TOL)
+                template.x_auto_price_gap > template._AUTO_PRICE_TOL and not vu)
 
     def _search_auto_price_stale(self, operator, value):
         """Champ calculé non stocké : sans cette méthode il ne serait pas

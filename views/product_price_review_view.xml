@@ -100,7 +100,8 @@
                 Un article apparaît ici pour l'une de deux raisons, lisibles
                 dans la colonne <b>Motif</b> : son <b>prix d'achat a changé</b>
                 (hausse, baisse, ou prix qui n'existait pas), ou son
-                <b>prix de vente ne suit plus la règle</b> — fournisseur
+                <b>prix de vente est sous la règle</b> (un prix au-dessus est
+                voulu et n'est pas signalé) — fournisseur
                 non-promo le moins cher × marge de la catégorie. Appliquer un
                 prix d'achat ne touche jamais au prix de vente : c'est ici que
                 la décision se prend.
@@ -113,7 +114,8 @@
                 à réimprimer seul, sans rien recalculer. <b>Vu, je garde mon
                 prix</b> sort la ligne de la liste sans modifier quoi que ce
                 soit — la bonne réponse pour une baisse de prix d'achat qu'on
-                ne veut pas répercuter.
+                ne veut pas répercuter, ou un prix sous la règle qu'on assume.
+                La ligne revient si un nouveau prix d'achat change la règle.
             </p>
         </field>
     </record>
