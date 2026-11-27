@@ -132,7 +132,7 @@ En production (2026-07-07), 2 catégories étaient à 0% (`Consignes/Vidanges`, 
 
 ### `min()` sur prix ex-æquo, arrondi bancaire, update non-batch
 
-Voir `MODULES_TECHNIQUE.md` §7 pour ces points mineurs (déterministes mais à connaître) — non modifiés lors de l'audit du 2026-07-07, jugés non prioritaires.
+Voir `MODULES_TECHNIQUE_ARCHIVE.md` §7 (dépôt odoo16-restore, archive du 07/07) pour ces points mineurs (déterministes mais à connaître) — non modifiés lors de l'audit du 2026-07-07, jugés non prioritaires.
 
 ---
 
